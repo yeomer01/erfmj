@@ -13,6 +13,9 @@ const firebaseConfig = {
   measurementId: "G-YJ620TJS02"
 };
 
+// 다른 모듈에서 __firebase_config를 참조할 때를 위한 호환 처리
+if (typeof window !== "undefined") window.__firebase_config = firebaseConfig;
+
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
