@@ -1,0 +1,27 @@
+import { initializeApp } from "firebase/app";
+import { getAuth } from "firebase/auth";
+import { getFirestore } from "firebase/firestore";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBxVptmoeHw56bHAb_dm2mAn1T_KkSpBBQ",
+  authDomain: "er-449e9.firebaseapp.com",
+  projectId: "er-449e9",
+  storageBucket: "er-449e9.firebasestorage.app",
+  messagingSenderId: "841263293917",
+  appId: "1:841263293917:web:116d249f3d0f89ca278234",
+  measurementId: "G-YJ620TJS02"
+};
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+const appId = "er-449e9";
+
+const FIXED_TERMINATED_VENDORS = ['JB(2DAY)', '가나다다', '더팩토리', '미베', '베트남', '블루진', '사과나무', '세종', '정도', '카이저'];
+
+const USER_ACCOUNTS = [
+  { id: 'djcrow', password: '12345', name: '정진수', role: 'manager', domain: 'fairplay142.com' },
+  { id: 'dongil.yeom', password: '12345', name: '염동일', role: 'manager', domain: 'fairplay142.com' },
+];
+
+export { app, auth, db, appId, FIXED_TERMINATED_VENDORS, USER_ACCOUNTS };
