@@ -1,25 +1,39 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from 'react';
+import { ErrorBoundary } from './components/ErrorBoundary';
+import { LoginScreen } from './components/modals/LoginScreen';
+import DefectManagerApp from './components/DefectManagerApp';
 
-function App() {
+export default function App() {
+  const [loggedInUser, setLoggedInUser] = useState(null);
+
+  const handleLogin = (user) => {
+    setLoggedInUser(user);
+    localStorage.setItem('er_logged_in_user', JSON.stringify(user));
+  };
+
+  const handleLogout = () => {
+    setLoggedInUser(null);
+    localStorage.removeItem('er_logged_in_user');
+  };
+
+  useEffect(() => {
+    const savedUser = localStorage.getItem('er_logged_in_user');
+    if (savedUser) {
+      try {
+        setLoggedInUser(JSON.parse(savedUser));
+      } catch (e) {
+        localStorage.removeItem('er_logged_in_user');
+      }
+    }
+  }, []);
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
+    <ErrorBoundary>
+      {!loggedInUser ? (
+        <LoginScreen onLogin={handleLogin} />
+      ) : (
+        <DefectManagerApp loggedInUser={loggedInUser} onLogout={handleLogout} />
+      )}
+    </ErrorBoundary>
   );
 }
-
-export default App;
