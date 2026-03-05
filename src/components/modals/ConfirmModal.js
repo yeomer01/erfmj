@@ -6,20 +6,20 @@ export function ConfirmModal({ isOpen, message, detail, skippedItems, onConfirm,
   useEffect(() => { if (isOpen) setShowSkipped(false); }, [isOpen]);
   if (!isOpen) return null;
   return (
-    <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-stone-900/40 backdrop-blur-sm z-[9990] flex items-center justify-center p-4">
       <div className="bg-white shadow-2xl max-w-lg w-full p-0 border border-stone-200 animate-in zoom-in-95 duration-200 rounded-xl overflow-hidden">
         <div className="p-6">
           <h3 className="text-lg font-bold text-stone-900 mb-3 flex items-center justify-center gap-2"><AlertCircle className="text-stone-600" size={24} />확인</h3>
           <p className="text-stone-600 mb-6 whitespace-pre-wrap leading-relaxed text-sm text-center">{String(message)}</p>
           {detail && (
             <div className="bg-stone-50 p-4 mb-6 text-sm text-stone-700 space-y-2 border border-stone-100 rounded-lg">
-               {Array.isArray(detail) ? detail.map((line, idx) => (
+              {Array.isArray(detail) ? detail.map((line, idx) => (
                 <div key={idx} className="flex justify-between items-center border-b border-stone-200/50 pb-1 last:border-0 last:pb-0">
                   <span className="text-stone-500 font-medium">{line.label}</span>
                   <span className="font-bold font-mono text-center">{String(line.value)}</span>
                 </div>
               )) : (
-                 <p className="text-stone-600 whitespace-pre-line text-center">{String(detail)}</p>
+                <p className="text-stone-600 whitespace-pre-line text-center">{String(detail)}</p>
               )}
             </div>
           )}
