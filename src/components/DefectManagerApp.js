@@ -31,6 +31,7 @@ import { ReportPreviewModal } from './modals/ReportPreviewModal';
 import { ActivityLogModal } from './modals/ActivityLogModal';
 import { PasswordChangeModal } from './modals/PasswordChangeModal';
 import { UserManagementModal } from './modals/UserManagementModal';
+import { AIPhotoUploadModal } from './modals/AIPhotoUploadModal';
 
 import { EditableCell } from './table/EditableCell';
 import { QuickAddInput } from './table/QuickAddInput';
@@ -108,6 +109,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserMgmtModalOpen, setIsUserMgmtModalOpen] = useState(false);
+  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [columnFilters, setColumnFilters] = useState({});
@@ -791,6 +793,21 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
       <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} user={user} />
       <PasswordChangeModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} loggedInUser={loggedInUser} onPasswordChanged={() => showToast('비밀번호가 변경되었습니다.')} />
       <UserManagementModal isOpen={isUserMgmtModalOpen} onClose={() => setIsUserMgmtModalOpen(false)} onConfirm={showConfirm} onToast={showToast} />
+      <AIPhotoUploadModal 
+        isOpen={isAIModalOpen} 
+        onClose={() => setIsAIModalOpen(false)} 
+        onApply={(result) => {
+          setQuickAddData(prev => ({ 
+            ...prev, 
+            vendor: result.vendor,
+            productName: result.productName,
+            color: result.color,
+            size: result.size,
+            defectContent: result.defectContent
+          }));
+          showToast('AI 분석 결과가 인라인 입력창에 적용되었습니다.');
+        }} 
+      />
 
       {/* Floating Action Bar */}
       {selectedRowIds.size > 0 && (
@@ -874,7 +891,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
           )}
           <button onClick={handleDownload} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="엑셀 다운로드"><Download size={18} strokeWidth={2.5} /></button>
           {hasWriteAccess && (
-            <button onClick={openNewModal} className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 text-xs font-bold shadow-md shadow-stone-200 transition-all active:scale-95 ml-2 rounded-sm"><Plus size={16} strokeWidth={3} /> 신규 등록</button>
+            <div className="flex items-center">
+              <button onClick={() => setIsAIModalOpen(true)} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 text-xs font-bold shadow-md shadow-indigo-200 transition-all active:scale-95 ml-2 rounded-sm"><Camera size={16} strokeWidth={2.5} /> AI 분석</button>
+              <button onClick={openNewModal} className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 text-xs font-bold shadow-md shadow-stone-200 transition-all active:scale-95 ml-2 rounded-sm"><Plus size={16} strokeWidth={3} /> 신규 등록</button>
+            </div>
           )}
           <div className="h-6 w-px bg-stone-200 mx-2"></div>
           <div className="flex items-center gap-2">
