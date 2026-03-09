@@ -46,16 +46,23 @@ export function AIPhotoUploadModal({ isOpen, onClose, onApply }) {
 
   const startAnalysis = () => {
     setIsAnalyzing(true);
-    // 모의 분석 (2.5초 대기)
+    
+    // 임의의 결과 세트 생성
+    const mockResults = [
+      { vendor: '오델리아', productName: '하프 넥 니트', color: 'IVORY', size: 'FREE', defectContent: '원단 이염 (AI 판독)' },
+      { vendor: '테스트 업체', productName: '제제후(n555)', color: '오트밀', size: 'S', defectContent: '오른팔 잡사' },
+      { vendor: '블루체리', productName: '기본 라운드티', color: 'BLACK', size: 'M', defectContent: '넥라인 박음질 불량' },
+      { vendor: '마이어페럴', productName: '데님 와이드 팬츠', color: 'BLUE', size: 'L', defectContent: '지퍼 불량' },
+      { vendor: '모의 업체 A', productName: '샘플 자켓', color: 'NAVY', size: 'FREE', defectContent: '단추 탈락' }
+    ];
+
+    // 모의 분석 (2.5초 대기 후 랜덤 결과 배정)
     setTimeout(() => {
       setIsAnalyzing(false);
+      const randomResult = mockResults[Math.floor(Math.random() * mockResults.length)];
       setAnalysisResult({
-        vendor: '테스트 업체',
-        productName: '제제후(n555)',
-        color: '오트밀',
-        size: 'S',
-        defectContent: '오른팔 잡사',
-        confidence: 96
+        ...randomResult,
+        confidence: Math.floor(Math.random() * (99 - 85 + 1)) + 85 // 85% ~ 99% 랜덤 신뢰도
       });
     }, 2500);
   };
