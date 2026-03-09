@@ -48,6 +48,7 @@ import { FactoryRepairRateSection } from './sections/FactoryRepairRateSection';
 export default function DefectManagerApp({ loggedInUser, onLogout }) {
   const { user, data, loading, setData } = useDefects();
   const { vendorConfig, updateVendorStatus } = useVendorSettings(user);
+  const hasWriteAccess = loggedInUser?.role === 'manager' || loggedInUser?.role === 'staff';
 
   // -- 상태를 상위에서 관리하여 하단 액션바 렌더링에 사용 --
   const [processedSubTab, setProcessedSubTab] = useState('repair');
@@ -144,6 +145,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleQuickAddSubmit = async () => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 등록 권한이 없습니다.', 'error');
+      return;
+    }
     if (!user) {
       showToast('로그인이 필요합니다.', 'error');
       return;
@@ -178,7 +183,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
     note: 120, manager: 80
   });
   const [visibleColumns, setVisibleColumns] = useState({
-    checkDate: true, vendor: true, productName: true, color: true,
+    no: true, checkDate: true, vendor: true, productName: true, color: true,
     size: true, quantity: true, cost: true, defectContent: true,
     status: true, note: true, manager: true
   });
@@ -245,15 +250,16 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
         String(val).toLowerCase().includes(searchTerm.toLowerCase())
       );
       if (!matchesSearch) return false;
-      for (const [key, selectedValues] of Object.entries(columnFilters)) {
-        if (selectedValues.length > 0) {
-          const itemValue = String(item[key] || '');
-          if (!selectedValues.includes(itemValue)) return false;
+
+      for (const [key, filterValues] of Object.entries(columnFilters)) {
+        if (filterValues && filterValues.length > 0) {
+          if (!filterValues.includes(String(item[key]))) return false;
         }
       }
-      const normalizedCheckDate = formatDate(item.checkDate);
-      if (dateRange.start && normalizedCheckDate && normalizedCheckDate < dateRange.start) return false;
-      if (dateRange.end && normalizedCheckDate && normalizedCheckDate > dateRange.end) return false;
+
+      if (dateRange.start && new Date(item.checkDate) < new Date(dateRange.start)) return false;
+      if (dateRange.end && new Date(item.checkDate) > new Date(dateRange.end)) return false;
+
       return true;
     });
   }, [dataWithDerivedStatus, searchTerm, columnFilters, dateRange]);
@@ -277,6 +283,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleInlineUpdate = async (id, field, value) => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 수정 권한이 없습니다.', 'error');
+      return;
+    }
     if (!user) {
       showToast('로그인이 필요합니다.', 'error');
       return;
@@ -386,6 +396,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleSave = async (formData, keepOpen = false) => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 저장 권한이 없습니다.', 'error');
+      return false;
+    }
     if (!user) {
       showToast('로그인이 필요합니다.', 'error');
       return false;
@@ -422,6 +436,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleDelete = (id) => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 삭제 권한이 없습니다.', 'error');
+      return;
+    }
     showConfirm('정말 이 항목을 삭제하시겠습니까?', null, [], async () => {
       if (!user) return;
       try {
@@ -440,6 +458,10 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   const openNewModal = () => { setEditingItem(null); setIsModalOpen(true); };
 
   const handleResetData = () => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 초기화 권한이 없습니다.', 'error');
+      return;
+    }
     showConfirm(
       '현재 등록된 모든 데이터를 삭제하시겠습니까? 이 작업은 되돌릴 수 없으며, 목록이 빈 상태로 초기화됩니다.',
       null, [],
@@ -470,6 +492,11 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleFileUpload = (event) => {
+    if (!hasWriteAccess) {
+      showToast('보기 등급은 업로드 권한이 없습니다.', 'error');
+      event.target.value = '';
+      return;
+    }
     const file = event.target.files[0];
     if (!file) return;
     const reader = new FileReader();
@@ -568,6 +595,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleMoveToDeductionRequest = async () => {
+    if (!hasWriteAccess) { showToast('보기 등급은 차감 요청 권한이 없습니다.', 'error'); return; }
     if (!user) return;
     try {
       const batch = writeBatch(db);
@@ -587,6 +615,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleSingleDeductionRequest = async (item) => {
+    if (!hasWriteAccess) { showToast('보기 등급은 차감 요청 권한이 없습니다.', 'error'); return; }
     if (!user) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'defects', item.id);
@@ -600,6 +629,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleRevertDeduction = (item) => {
+    if (!hasWriteAccess) { showToast('보기 등급은 취소 권한이 없습니다.', 'error'); return; }
     const isRepaidItem = item.isRepaid;
     const confirmMessage = isRepaidItem
       ? `'${item.productName}'의 재결제를 취소하시겠습니까?`
@@ -642,6 +672,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleBatchRepayment = async () => {
+    if (!hasWriteAccess) { showToast('보기 등급은 재결제 권한이 없습니다.', 'error'); return; }
     if (!user || selectedRowIds.size === 0) return;
     const itemsToRepay = data.filter(item => selectedRowIds.has(item.id) && item.deductionDate && !item.isRepaid);
 
@@ -675,6 +706,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleSingleRepayment = (item) => {
+    if (!hasWriteAccess) { showToast('보기 등급은 재결제 권한이 없습니다.', 'error'); return; }
     if (!user) return;
     showConfirm(
       `'${item.productName}' 건을 재결제(환불) 처리하시겠습니까?`,
@@ -699,6 +731,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleProcessRequest = async (item) => {
+    if (!hasWriteAccess) { showToast('보기 등급은 처리 권한이 없습니다.', 'error'); return; }
     if (!user) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'defects', item.id);
@@ -722,6 +755,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   };
 
   const handleCancelRequest = async (item) => {
+    if (!hasWriteAccess) { showToast('보기 등급은 취소 권한이 없습니다.', 'error'); return; }
     if (!user) return;
     try {
       const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'defects', item.id);
@@ -761,15 +795,23 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
       {/* Floating Action Bar */}
       {selectedRowIds.size > 0 && (
         <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-4 fade-in duration-300 flex shadow-2xl">
-          <button onClick={handleSendEmail} className="flex items-center gap-3 px-6 py-4 bg-stone-800 text-white rounded-l-md hover:bg-stone-700 transition-all font-bold border-r border-stone-600 hover:scale-105 active:scale-95 text-lg"><Mail size={20} strokeWidth={2.5} /><span>메일 발송</span></button>
-          <button onClick={handleOpenReport} className="flex items-center gap-3 px-6 py-4 bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all font-bold border-r border-stone-300 hover:scale-105 active:scale-95 text-lg"><ImageIcon size={20} strokeWidth={2.5} /><span>보고서/이미지</span></button>
-          {(activeTab === 'list' || activeTab === 'overdue') && (
-            <button onClick={handleMoveToDeductionRequest} className="flex items-center gap-3 px-6 py-4 bg-indigo-600 text-white hover:bg-indigo-700 transition-all font-bold border-r border-indigo-500 hover:scale-105 active:scale-95 text-lg"><Send size={20} strokeWidth={2.5} /><span>차감 요청 등록</span></button>
+          <div className="flex items-center gap-3 px-6 py-4 bg-stone-800 text-stone-300 rounded-l-md border-r border-stone-700">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-500 text-white font-bold text-xs">{selectedRowIds.size}</span>
+            <span className="font-bold text-sm tracking-wide">선택됨</span>
+          </div>
+          {hasWriteAccess && (
+            <>
+              <button onClick={handleSendEmail} className="flex items-center gap-3 px-6 py-4 bg-stone-800 text-white hover:bg-stone-700 transition-all font-bold border-r border-stone-600 hover:scale-105 active:scale-95 text-lg"><Mail size={20} strokeWidth={2.5} /><span>메일 발송</span></button>
+              <button onClick={handleOpenReport} className="flex items-center gap-3 px-6 py-4 bg-stone-100 text-stone-800 hover:bg-stone-200 transition-all font-bold border-r border-stone-300 hover:scale-105 active:scale-95 text-lg"><ImageIcon size={20} strokeWidth={2.5} /><span>보고서/이미지</span></button>
+              {(activeTab === 'list' || activeTab === 'overdue') && (
+                <button onClick={handleMoveToDeductionRequest} className="flex items-center gap-3 px-6 py-4 bg-indigo-600 text-white hover:bg-indigo-700 transition-all font-bold border-r border-indigo-500 hover:scale-105 active:scale-95 text-lg"><Send size={20} strokeWidth={2.5} /><span>차감 요청 등록</span></button>
+              )}
+              {(activeTab === 'processed' && processedSubTab === 'deduction') && (
+                <button onClick={handleBatchRepayment} className="flex items-center gap-3 px-6 py-4 bg-green-600 text-white hover:bg-green-700 transition-all font-bold border-r border-green-500 hover:scale-105 active:scale-95 text-lg"><CreditCard size={20} strokeWidth={2.5} /><span>선택 항목 재결제</span></button>
+              )}
+            </>
           )}
-          {(activeTab === 'processed' && processedSubTab === 'deduction') && (
-            <button onClick={handleBatchRepayment} className="flex items-center gap-3 px-6 py-4 bg-green-600 text-white hover:bg-green-700 transition-all font-bold border-r border-green-500 hover:scale-105 active:scale-95 text-lg"><CreditCard size={20} strokeWidth={2.5} /><span>선택 항목 재결제</span></button>
-          )}
-          <button onClick={() => setSelectedRowIds(new Set())} className="flex items-center justify-center px-5 py-4 bg-stone-800 text-stone-400 hover:text-white hover:bg-rose-600 rounded-r-md transition-all font-bold hover:scale-105 active:scale-95" title="선택 모두 해제"><X size={24} strokeWidth={3} /></button>
+          <button onClick={() => setSelectedRowIds(new Set())} className={`flex items-center justify-center px-5 py-4 bg-stone-800 text-stone-400 hover:text-white hover:bg-rose-600 ${!hasWriteAccess ? 'rounded-r-md' : 'rounded-r-md'} transition-all font-bold hover:scale-105 active:scale-95`} title="선택 모두 해제"><X size={24} strokeWidth={3} /></button>
         </div>
       )}
 
@@ -791,28 +833,28 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
           {/* Date Range Picker in Header */}
           <div className="hidden md:flex items-center gap-2 bg-white border border-stone-200 rounded-lg px-3 py-1.5 shadow-sm ml-2 transition-all hover:border-stone-300">
             <span className="text-xs text-stone-500 font-bold flex items-center gap-1.5 whitespace-nowrap">
-              <Calendar size={14} className="text-stone-400"/> 기간:
+              <Calendar size={14} className="text-stone-400" /> 기간:
             </span>
             <input
               type="date"
               value={dateRange.start}
-              onChange={(e) => { setDateRange({...dateRange, start: e.target.value}); setCurrentPage(1); }}
+              onChange={(e) => { setDateRange({ ...dateRange, start: e.target.value }); setCurrentPage(1); }}
               className="text-xs border-none focus:ring-0 text-stone-600 p-0 w-24 bg-transparent cursor-pointer font-mono outline-none"
             />
             <span className="text-stone-300">~</span>
             <input
               type="date"
               value={dateRange.end}
-              onChange={(e) => { setDateRange({...dateRange, end: e.target.value}); setCurrentPage(1); }}
+              onChange={(e) => { setDateRange({ ...dateRange, end: e.target.value }); setCurrentPage(1); }}
               className="text-xs border-none focus:ring-0 text-stone-600 p-0 w-24 bg-transparent cursor-pointer font-mono outline-none"
             />
             {(dateRange.start || dateRange.end) && (
               <button
-                onClick={() => setDateRange({start: '', end: ''})}
+                onClick={() => setDateRange({ start: '', end: '' })}
                 className="ml-1 text-stone-400 hover:text-rose-500 transition-colors p-0.5 rounded-full hover:bg-rose-50"
                 title="기간 초기화"
               >
-                <XCircle size={14}/>
+                <XCircle size={14} />
               </button>
             )}
           </div>
@@ -824,10 +866,16 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
             </span>
           )}
           <div className="h-4 w-px bg-stone-200 mx-1"></div>
-          <button onClick={handleResetData} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="데이터 초기화"><RotateCcw size={18} strokeWidth={2.5} /></button>
-          <button onClick={triggerFileUpload} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="CSV 업로드"><Upload size={18} strokeWidth={2.5} /></button>
+          {hasWriteAccess && (
+            <>
+              <button onClick={handleResetData} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="데이터 초기화"><RotateCcw size={18} strokeWidth={2.5} /></button>
+              <button onClick={triggerFileUpload} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="CSV 업로드"><Upload size={18} strokeWidth={2.5} /></button>
+            </>
+          )}
           <button onClick={handleDownload} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="엑셀 다운로드"><Download size={18} strokeWidth={2.5} /></button>
-          <button onClick={openNewModal} className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 text-xs font-bold shadow-md shadow-stone-200 transition-all active:scale-95 ml-2 rounded-sm"><Plus size={16} strokeWidth={3} /> 신규 등록</button>
+          {hasWriteAccess && (
+            <button onClick={openNewModal} className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 text-xs font-bold shadow-md shadow-stone-200 transition-all active:scale-95 ml-2 rounded-sm"><Plus size={16} strokeWidth={3} /> 신규 등록</button>
+          )}
           <div className="h-6 w-px bg-stone-200 mx-2"></div>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2 px-3 py-1.5 bg-stone-50 rounded-sm border border-stone-200">
@@ -936,10 +984,12 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                     onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
                   />
                   {(searchTerm) && (
-                    <button onClick={() => { setSearchTerm(''); }} className="text-stone-400 hover:text-red-500 transition-colors ml-2" title="검색조건 초기화"><XCircle size={14}/></button>
+                    <button onClick={() => { setSearchTerm(''); }} className="text-stone-400 hover:text-red-500 transition-colors ml-2" title="검색조건 초기화"><XCircle size={14} /></button>
                   )}
                 </div>
-                <button onClick={openNewModal} className="flex items-center gap-1.5 px-3 py-2 bg-white text-stone-700 border border-stone-300 rounded-sm text-xs font-bold hover:bg-stone-50 transition-all shadow-sm active:scale-95 whitespace-nowrap"><Plus size={14} strokeWidth={3} /> 내역 추가</button>
+                {hasWriteAccess && (
+                  <button onClick={openNewModal} className="flex items-center gap-1.5 px-3 py-2 bg-white text-stone-700 border border-stone-300 rounded-sm text-xs font-bold hover:bg-stone-50 transition-all shadow-sm active:scale-95 whitespace-nowrap"><Plus size={14} strokeWidth={3} /> 내역 추가</button>
+                )}
                 <div className="relative" ref={columnMenuRef}>
                   <button onClick={() => setIsColumnMenuOpen(!isColumnMenuOpen)} className="p-2 bg-white border border-stone-200 rounded-lg text-stone-500 hover:text-stone-900 hover:bg-stone-50 transition-all" title="열 설정"><ListFilter size={18} /></button>
                   {isColumnMenuOpen && (
@@ -947,9 +997,9 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                       <div className="text-[10px] font-bold text-stone-400 mb-2 px-2 uppercase tracking-wider">표시할 항목 선택</div>
                       <div className="space-y-1">
                         {Object.entries({
-                          checkDate: '불량확인일', vendor: '업체명', productName: '상품명',
+                          no: 'No', checkDate: '불량확인일', vendor: '업체명', productName: '상품명',
                           color: '색상', size: '사이즈', quantity: '수량', cost: '원가',
-                          defectContent: '불량내용', status: '진행상태', note: '비고', manager: '담당자'
+                          defectContent: '불량내용', status: '상태', note: '비고', manager: '담당자'
                         }).map(([key, label]) => (
                           <label key={key} className="flex items-center px-2 py-1.5 hover:bg-stone-50 rounded-lg cursor-pointer group transition-colors">
                             <div className={`w-4 h-4 rounded border flex items-center justify-center mr-2 transition-colors ${visibleColumns[key] ? 'bg-stone-800 border-stone-800' : 'bg-white border-stone-300 group-hover:border-stone-400'}`}>
@@ -977,7 +1027,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                     <th className="w-8 text-center px-2 py-2 bg-white border-r border-stone-100" style={{ width: '40px' }}>
                       <input type="checkbox" checked={paginatedData.length > 0 && paginatedData.every(item => selectedRowIds.has(item.id))} className="rounded border-stone-300 text-stone-800 focus:ring-0" onChange={() => toggleAllRows(paginatedData)} />
                     </th>
-                    <ResizableHeader label="No" width={columnWidths.no} columnKey="no" onResize={handleResizeStart} />
+                    {visibleColumns.no && <ResizableHeader label="No" width={columnWidths.no} columnKey="no" onResize={handleResizeStart} />}
                     {visibleColumns.checkDate && <FilterableHeaderCell label="불량확인일" columnKey="checkDate" allData={data} filters={columnFilters} onFilterChange={handleColumnFilterChange} width={columnWidths.checkDate} onResize={handleResizeStart} />}
                     {visibleColumns.vendor && <FilterableHeaderCell label="업체명" columnKey="vendor" allData={data} filters={columnFilters} onFilterChange={handleColumnFilterChange} width={columnWidths.vendor} onResize={handleResizeStart} />}
                     {visibleColumns.productName && <FilterableHeaderCell label="상품명" columnKey="productName" allData={data} filters={columnFilters} onFilterChange={handleColumnFilterChange} width={columnWidths.productName} onResize={handleResizeStart} />}
@@ -992,24 +1042,26 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                     <th className="px-2 py-2 text-center sticky right-0 bg-white z-30 shadow-l-sm border-l border-stone-100 font-bold text-[11px] uppercase tracking-wider text-stone-500" style={{ width: '80px' }}>관리</th>
                   </tr>
                   {/* Quick Add Row */}
-                  <tr className="bg-blue-50/40 border-b-2 border-blue-100/50 shadow-inner">
-                    <td className="px-2 py-2 text-center border-r border-blue-100/50 bg-blue-50/20"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mx-auto"></div></td>
-                    <td className="px-2 py-2 text-center font-bold text-[10px] text-blue-500 border-r border-blue-100/50 bg-blue-50/20">NEW</td>
-                    {visibleColumns.checkDate && <td className="px-1.5 py-1.5"><QuickAddInput name="checkDate" type="date" value={quickAddData.checkDate} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} /></td>}
-                    {visibleColumns.vendor && <td className="px-1.5 py-1.5"><QuickAddInput name="vendor" value={quickAddData.vendor} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="업체명" suggestions={uniqueValues.vendor} /></td>}
-                    {visibleColumns.productName && <td className="px-1.5 py-1.5"><QuickAddInput name="productName" value={quickAddData.productName} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="상품명" suggestions={uniqueValues.productName} /></td>}
-                    {visibleColumns.color && <td className="px-1.5 py-1.5"><QuickAddInput name="color" value={quickAddData.color} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="색상" suggestions={uniqueValues.color} /></td>}
-                    {visibleColumns.size && <td className="px-1.5 py-1.5"><QuickAddInput name="size" value={quickAddData.size} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="사이즈" className="text-center" suggestions={uniqueValues.size} /></td>}
-                    {visibleColumns.quantity && <td className="px-1.5 py-1.5"><QuickAddInput name="quantity" type="number" value={quickAddData.quantity} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} className="text-center font-bold" /></td>}
-                    {visibleColumns.cost && <td className="px-1.5 py-1.5"><QuickAddInput name="cost" type="number" value={quickAddData.cost} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} className="text-right font-mono" /></td>}
-                    {visibleColumns.defectContent && <td className="px-1.5 py-1.5"><QuickAddInput name="defectContent" value={quickAddData.defectContent} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="불량내용" suggestions={uniqueValues.defectContent} /></td>}
-                    {visibleColumns.status && <td className="px-1.5 py-1.5 text-center">{(() => { const status = getItemStatus(quickAddData); return <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.className}`}>{status.label}</span>; })()}</td>}
-                    {visibleColumns.note && <td className="px-1.5 py-1.5"><QuickAddInput name="note" value={quickAddData.note} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="비고" suggestions={uniqueValues.note} /></td>}
-                    {visibleColumns.manager && <td className="px-1.5 py-1.5"><QuickAddInput name="manager" value={quickAddData.manager} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="담당자" className="text-center" /></td>}
-                    <td className="px-2 py-2 text-center sticky right-0 bg-blue-50 border-l border-blue-100 shadow-sm z-30">
-                      <button onClick={handleQuickAddSubmit} className="flex items-center justify-center w-full h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-sm active:scale-95" title="입력 저장 (Enter)"><Plus size={16} strokeWidth={3} /></button>
-                    </td>
-                  </tr>
+                  {hasWriteAccess && (
+                    <tr className="bg-blue-50/40 border-b-2 border-blue-100/50 shadow-inner">
+                      <td className="px-2 py-2 text-center border-r border-blue-100/50 bg-blue-50/20"><div className="w-1.5 h-1.5 rounded-full bg-blue-400 mx-auto"></div></td>
+                      {visibleColumns.no && <td className="px-2 py-2 text-center font-bold text-[10px] text-blue-500 border-r border-blue-100/50 bg-blue-50/20">NEW</td>}
+                      {visibleColumns.checkDate && <td className="px-1.5 py-1.5"><QuickAddInput name="checkDate" type="date" value={quickAddData.checkDate} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} /></td>}
+                      {visibleColumns.vendor && <td className="px-1.5 py-1.5"><QuickAddInput name="vendor" value={quickAddData.vendor} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="업체명" suggestions={uniqueValues.vendor} /></td>}
+                      {visibleColumns.productName && <td className="px-1.5 py-1.5"><QuickAddInput name="productName" value={quickAddData.productName} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="상품명" suggestions={uniqueValues.productName} /></td>}
+                      {visibleColumns.color && <td className="px-1.5 py-1.5"><QuickAddInput name="color" value={quickAddData.color} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="색상" suggestions={uniqueValues.color} /></td>}
+                      {visibleColumns.size && <td className="px-1.5 py-1.5"><QuickAddInput name="size" value={quickAddData.size} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="사이즈" className="text-center" suggestions={uniqueValues.size} /></td>}
+                      {visibleColumns.quantity && <td className="px-1.5 py-1.5"><QuickAddInput name="quantity" type="number" value={quickAddData.quantity} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} className="text-center font-bold" /></td>}
+                      {visibleColumns.cost && <td className="px-1.5 py-1.5"><QuickAddInput name="cost" type="number" value={quickAddData.cost} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} className="text-right font-mono" /></td>}
+                      {visibleColumns.defectContent && <td className="px-1.5 py-1.5"><QuickAddInput name="defectContent" value={quickAddData.defectContent} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="불량내용" suggestions={uniqueValues.defectContent} /></td>}
+                      {visibleColumns.status && <td className="px-1.5 py-1.5 text-center">{(() => { const status = getItemStatus(quickAddData); return <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${status.className}`}>{status.label}</span>; })()}</td>}
+                      {visibleColumns.note && <td className="px-1.5 py-1.5"><QuickAddInput name="note" value={quickAddData.note} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="비고" suggestions={uniqueValues.note} /></td>}
+                      {visibleColumns.manager && <td className="px-1.5 py-1.5"><QuickAddInput name="manager" value={quickAddData.manager} onChange={handleQuickAddChange} onEnter={handleQuickAddSubmit} placeholder="담당자" className="text-center" /></td>}
+                      <td className="px-2 py-2 text-center sticky right-0 bg-blue-50 border-l border-blue-100 shadow-sm z-30">
+                        <button onClick={handleQuickAddSubmit} className="flex items-center justify-center w-full h-7 bg-blue-600 hover:bg-blue-700 text-white rounded-md transition-colors shadow-sm active:scale-95" title="입력 저장 (Enter)"><Plus size={16} strokeWidth={3} /></button>
+                      </td>
+                    </tr>
+                  )}
                 </thead>
                 <tbody className="divide-y divide-stone-100 bg-white">
                   {paginatedData.length === 0 ? (
@@ -1029,7 +1081,7 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                           <td className="px-2 py-2 text-center border-r border-stone-50 whitespace-nowrap overflow-hidden">
                             <input type="checkbox" checked={isSelected} onChange={() => toggleRowSelection(item.id)} className="rounded border-stone-300 text-stone-800 focus:ring-0 w-3.5 h-3.5 cursor-pointer" />
                           </td>
-                          <td className="px-2 py-2 text-center text-stone-400 font-mono text-[10px] border-r border-stone-50 whitespace-nowrap overflow-hidden text-ellipsis">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>
+                          {visibleColumns.no && <td className="px-2 py-2 text-center text-stone-400 font-mono text-[10px] border-r border-stone-50 whitespace-nowrap overflow-hidden text-ellipsis">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>}
                           {visibleColumns.checkDate && <td className="px-1.5 py-1.5 whitespace-nowrap overflow-hidden"><EditableCell value={formatDate(item.checkDate)} rowId={item.id} field="checkDate" onUpdate={handleInlineUpdate} type="date" /></td>}
                           {visibleColumns.vendor && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.vendor} rowId={item.id} field="vendor" onUpdate={handleInlineUpdate} className="font-bold" /></td>}
                           {visibleColumns.productName && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.productName} rowId={item.id} field="productName" onUpdate={handleInlineUpdate} /></td>}
@@ -1042,10 +1094,12 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                           {visibleColumns.note && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.note} rowId={item.id} field="note" onUpdate={handleInlineUpdate} placeholder="-" /></td>}
                           {visibleColumns.manager && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.manager} rowId={item.id} field="manager" onUpdate={handleInlineUpdate} placeholder="-" className="text-center" /></td>}
                           <td className="px-2 py-2 text-center sticky right-0 z-20 bg-white group-hover:bg-stone-50 border-l border-stone-50 shadow-[-4px_0_8px_-2px_rgba(0,0,0,0.02)] whitespace-nowrap" style={{ width: '80px' }}>
-                            <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <button onClick={() => handleEdit(item)} className="p-1.5 text-stone-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"><Edit2 size={14} /></button>
-                              <button onClick={() => handleDelete(item.id)} className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14} /></button>
-                            </div>
+                            {hasWriteAccess && (
+                              <div className="flex items-center justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button onClick={() => handleEdit(item)} className="p-1.5 text-stone-500 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"><Edit2 size={14} /></button>
+                                <button onClick={() => handleDelete(item.id)} className="p-1.5 text-stone-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"><Trash2 size={14} /></button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -1059,13 +1113,13 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
             <div className="px-6 py-3 border-t border-stone-100 bg-white flex justify-between items-center">
               <div className="text-xs text-stone-400">Showing {Math.min((currentPage - 1) * ITEMS_PER_PAGE + 1, filteredData.length)} - {Math.min(currentPage * ITEMS_PER_PAGE, filteredData.length)}</div>
               <div className="flex items-center gap-1">
-                <button onClick={() => setCurrentPage(p => Math.max(1, p-1))} disabled={currentPage===1} className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 text-stone-500 transition-all"><ChevronLeft size={16} /></button>
+                <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 text-stone-500 transition-all"><ChevronLeft size={16} /></button>
                 <div className="flex items-center px-2">
                   <span className="text-xs font-bold text-stone-800">{currentPage}</span>
                   <span className="text-xs text-stone-400 mx-1">/</span>
                   <span className="text-xs text-stone-500">{totalPages}</span>
                 </div>
-                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p+1))} disabled={currentPage===totalPages} className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 text-stone-500 transition-all"><ChevronRight size={16} /></button>
+                <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-2 rounded-lg hover:bg-stone-100 disabled:opacity-30 text-stone-500 transition-all"><ChevronRight size={16} /></button>
               </div>
             </div>
           </div>
@@ -1073,27 +1127,22 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
 
         {/* Other Tab Content */}
         {activeTab === 'deduction_request' && (
-          <DeductionRequestSection ref={deductionRequestSectionRef} items={stats.deductionRequestedItems} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onProcess={handleProcessRequest} onCancelRequest={handleCancelRequest} />
+          <DeductionRequestSection ref={deductionRequestSectionRef} items={stats.deductionRequestedItems} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onProcess={handleProcessRequest} onCancelRequest={handleCancelRequest} hasWriteAccess={hasWriteAccess} />
         )}
         {activeTab === 'processed' && (
-          <SplitProcessedSection ref={splitProcessedSectionRef} repairItems={stats.repairProcessedItems} deductionItems={stats.deductionProcessedItems} deductionRepairItems={stats.deductionRepairItems} repaymentItems={stats.repaymentItems} defaultOpen={true} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRevert={handleRevertDeduction} onRepayment={handleSingleRepayment} />
+          <SplitProcessedSection ref={splitProcessedSectionRef} repairItems={stats.repairProcessedItems} deductionItems={stats.deductionProcessedItems} deductionRepairItems={stats.deductionRepairItems} repaymentItems={stats.repaymentItems} defaultOpen={true} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRevert={handleRevertDeduction} onRepayment={handleSingleRepayment} hasWriteAccess={hasWriteAccess} />
         )}
         {activeTab === 'overdue' && (
-          <OverdueItemsSection ref={overdueSectionRef} items={stats.overdueItems} defaultOpen={true} onEdit={handleEdit} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRequestDeduction={handleSingleDeductionRequest} />
+          <OverdueItemsSection ref={overdueSectionRef} items={stats.overdueItems} defaultOpen={true} onEdit={handleEdit} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRequestDeduction={handleSingleDeductionRequest} hasWriteAccess={hasWriteAccess} />
         )}
         {activeTab === 'stats' && (
           <div className="space-y-6">
             <BottomDeductionSection ref={bottomSectionRef} groupedData={groupedDeductionData} defaultOpen={true} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} />
-            <FactoryRepairRateSection ref={repairRateSectionRef} data={data} defaultOpen={true} />
+            <FactoryRepairRateSection ref={repairRateSectionRef} data={data} defaultOpen={true} vendorConfig={vendorConfig} onUpdateVendorStatus={updateVendorStatus} hasWriteAccess={hasWriteAccess} />
           </div>
         )}
 
-        {/* Footer Reset */}
-        <div className="flex justify-end pt-12 pb-6 border-t border-stone-200 mt-12">
-          <button onClick={handleResetData} className="flex items-center gap-2 px-4 py-2 bg-stone-200 text-stone-500 hover:bg-red-50 hover:text-red-600 rounded-sm text-xs font-bold transition-all">
-            <Trash2 size={14} /> 데이터 전체 초기화 (Reset)
-          </button>
-        </div>
+        {/* Footer Reset Removed */}
       </main>
     </div>
   );

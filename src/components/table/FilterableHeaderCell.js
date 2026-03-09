@@ -30,13 +30,13 @@ export function FilterableHeaderCell({ label, columnKey, allData, filters, onFil
       </div>
       {isOpen && (
         <div className="absolute top-full left-0 mt-1 w-48 bg-white border border-stone-200 shadow-xl rounded-lg z-50 flex flex-col max-h-60" onClick={e => e.stopPropagation()}>
-           <div className="p-2 border-b border-stone-100 flex justify-between items-center bg-stone-50 rounded-t-lg"><span className="text-xs font-bold text-stone-500">필터 선택</span><button onClick={() => onFilterChange(columnKey, [])} className="text-[10px] text-stone-600 hover:underline">초기화</button></div>
-           <div className="overflow-y-auto p-1 custom-scrollbar text-left">
-              <label className="flex items-center px-2 py-1.5 hover:bg-stone-50 cursor-pointer"><input type="checkbox" checked={selectedValues.length === uniqueValues.length && uniqueValues.length > 0} onChange={toggleAll} className="rounded border-stone-300 text-stone-800 focus:ring-0 w-3 h-3 mr-2" /><span className="text-xs font-bold text-stone-700">전체 선택</span></label>
-              <div className="h-px bg-stone-100 my-1 mx-2"></div>
-              {uniqueValues.map((val, idx) => (<label key={idx} className="flex items-center px-2 py-1.5 hover:bg-stone-50 cursor-pointer"><input type="checkbox" checked={selectedValues.includes(String(val))} onChange={() => toggleValue(val)} className="rounded border-stone-300 text-stone-800 focus:ring-0 w-3 h-3 mr-2" /><span className="text-xs text-stone-600 truncate" title={String(val)}>{String(val)}</span></label>))}
-              {uniqueValues.length === 0 && <div className="p-2 text-center text-xs text-stone-400">데이터 없음</div>}
-           </div>
+          <div className="p-2 border-b border-stone-100 flex justify-between items-center bg-stone-50 rounded-t-lg"><span className="text-xs font-bold text-red-500">숨길 항목 선택</span><button onClick={() => onFilterChange(columnKey, [])} className="text-[10px] text-stone-600 hover:underline">숨김 해제</button></div>
+          <div className="overflow-y-auto p-1 custom-scrollbar text-left">
+            <label className="flex items-center px-2 py-1.5 hover:bg-stone-50 cursor-pointer"><input type="checkbox" checked={selectedValues.length === uniqueValues.length && uniqueValues.length > 0} onChange={toggleAll} className="rounded border-stone-300 text-stone-800 focus:ring-0 w-3 h-3 mr-2" /><span className="text-xs font-bold text-stone-700">전체 숨기기</span></label>
+            <div className="h-px bg-stone-100 my-1 mx-2"></div>
+            {uniqueValues.map((val, idx) => (<label key={idx} className="flex items-center px-2 py-1.5 hover:bg-stone-50 cursor-pointer"><input type="checkbox" checked={selectedValues.includes(String(val))} onChange={() => toggleValue(val)} className="rounded border-stone-300 text-stone-800 focus:ring-0 w-3 h-3 mr-2" /><span className="text-xs text-stone-600 truncate" title={String(val)}>{String(val)}</span></label>))}
+            {uniqueValues.length === 0 && <div className="p-2 text-center text-xs text-stone-400">데이터 없음</div>}
+          </div>
         </div>
       )}
       <div onMouseDown={(e) => onResize(e, columnKey)} className="absolute right-0 top-0 h-full w-1 cursor-col-resize hover:bg-blue-400 group-hover/header:bg-stone-300 active:bg-blue-600 transition-colors z-20" onClick={(e) => e.stopPropagation()} />
