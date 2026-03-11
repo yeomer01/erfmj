@@ -31,7 +31,6 @@ import { ReportPreviewModal } from './modals/ReportPreviewModal';
 import { ActivityLogModal } from './modals/ActivityLogModal';
 import { PasswordChangeModal } from './modals/PasswordChangeModal';
 import { UserManagementModal } from './modals/UserManagementModal';
-import { AIPhotoUploadModal } from './modals/AIPhotoUploadModal';
 
 import { EditableCell } from './table/EditableCell';
 import { QuickAddInput } from './table/QuickAddInput';
@@ -109,7 +108,6 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
   const [isSaving, setIsSaving] = useState(false);
   const [isLogModalOpen, setIsLogModalOpen] = useState(false);
   const [isUserMgmtModalOpen, setIsUserMgmtModalOpen] = useState(false);
-  const [isAIModalOpen, setIsAIModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [columnFilters, setColumnFilters] = useState({});
@@ -442,18 +440,31 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
       showToast('보기 등급은 삭제 권한이 없습니다.', 'error');
       return;
     }
-    showConfirm('정말 이 항목을 삭제하시겠습니까?', null, [], async () => {
-      if (!user) return;
-      try {
-        const item = data.find(d => d.id === id);
-        await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'defects', id));
-        logAction('삭제', `${item?.vendor || 'Unknown'} 항목 삭제`, `${item?.productName} - ${item?.defectContent}`);
-        showToast('삭제되었습니다.');
-      } catch (error) {
-        console.error("Delete error:", error);
-        showToast('삭제 실패', 'error');
+    showConfirm(
+      '정말 이 항목을 삭제하시겠습니까?', 
+      '삭제 시 다시 되돌릴 수 없으며, 삭제된 내용은 별도 기록에 안전하게 보관됩니다.', 
+      async () => {
+        if (!user) return;
+        try {
+          const item = data.find(d => d.id === id);
+          if (item) {
+            const deletedRef = collection(db, 'artifacts', appId, 'public', 'data', 'deleted_defects');
+            await addDoc(deletedRef, {
+              ...item,
+              deletedAt: new Date().toISOString(),
+              deletedBy: loggedInUser?.name || 'Unknown',
+              deletedById: loggedInUser?.id || loggedInUser?.userId || 'unknown'
+            });
+          }
+          await deleteDoc(doc(db, 'artifacts', appId, 'public', 'data', 'defects', id));
+          logAction('삭제', `${item?.vendor || 'Unknown'} 항목 삭제`, `${item?.productName} - ${item?.defectContent}`);
+          showToast('삭제되었습니다.');
+        } catch (error) {
+          console.error("Delete error:", error);
+          showToast('삭제 실패', 'error');
+        }
       }
-    });
+    );
   };
 
   const handleEdit = (item) => { setEditingItem(item); setIsModalOpen(true); };
@@ -793,21 +804,6 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
       <ActivityLogModal isOpen={isLogModalOpen} onClose={() => setIsLogModalOpen(false)} user={user} />
       <PasswordChangeModal isOpen={isPasswordModalOpen} onClose={() => setIsPasswordModalOpen(false)} loggedInUser={loggedInUser} onPasswordChanged={() => showToast('비밀번호가 변경되었습니다.')} />
       <UserManagementModal isOpen={isUserMgmtModalOpen} onClose={() => setIsUserMgmtModalOpen(false)} onConfirm={showConfirm} onToast={showToast} />
-      <AIPhotoUploadModal 
-        isOpen={isAIModalOpen} 
-        onClose={() => setIsAIModalOpen(false)} 
-        onApply={(result) => {
-          setQuickAddData(prev => ({ 
-            ...prev, 
-            vendor: result.vendor,
-            productName: result.productName,
-            color: result.color,
-            size: result.size,
-            defectContent: result.defectContent
-          }));
-          showToast('AI 분석 결과가 인라인 입력창에 적용되었습니다.');
-        }} 
-      />
 
       {/* Floating Action Bar */}
       {selectedRowIds.size > 0 && (
@@ -892,7 +888,6 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
           <button onClick={handleDownload} className="p-2 text-stone-500 hover:text-stone-800 hover:bg-stone-100 transition-all rounded-sm" title="엑셀 다운로드"><Download size={18} strokeWidth={2.5} /></button>
           {hasWriteAccess && (
             <div className="flex items-center">
-              <button onClick={() => setIsAIModalOpen(true)} className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 text-xs font-bold shadow-md shadow-indigo-200 transition-all active:scale-95 ml-2 rounded-sm"><Camera size={16} strokeWidth={2.5} /> AI 분석</button>
               <button onClick={openNewModal} className="flex items-center gap-2 bg-stone-800 hover:bg-stone-700 text-white px-4 py-2 text-xs font-bold shadow-md shadow-stone-200 transition-all active:scale-95 ml-2 rounded-sm"><Plus size={16} strokeWidth={3} /> 신규 등록</button>
             </div>
           )}
@@ -1103,7 +1098,14 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
                           </td>
                           {visibleColumns.no && <td className="px-2 py-2 text-center text-stone-400 font-mono text-[10px] border-r border-stone-50 whitespace-nowrap overflow-hidden text-ellipsis">{(currentPage - 1) * ITEMS_PER_PAGE + index + 1}</td>}
                           {visibleColumns.checkDate && <td className="px-1.5 py-1.5 whitespace-nowrap overflow-hidden"><EditableCell value={formatDate(item.checkDate)} rowId={item.id} field="checkDate" onUpdate={handleInlineUpdate} type="date" /></td>}
-                          {visibleColumns.vendor && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.vendor} rowId={item.id} field="vendor" onUpdate={handleInlineUpdate} className="font-bold" /></td>}
+                          {visibleColumns.vendor && <td className="px-1.5 py-1.5 overflow-hidden">
+                            <div className="flex flex-col items-center justify-center -space-y-0.5" title={vendorConfig && vendorConfig[item.vendor] === 'inactive' ? '운영종료 공장' : ''}>
+                              <EditableCell value={item.vendor} rowId={item.id} field="vendor" onUpdate={handleInlineUpdate} className={`font-bold ${vendorConfig && vendorConfig[item.vendor] === 'inactive' ? 'text-stone-400 line-through decoration-stone-300' : 'text-stone-800'}`} />
+                              {vendorConfig && vendorConfig[item.vendor] === 'inactive' && (
+                                <span className="text-[9px] bg-rose-50 text-rose-500 border border-rose-100 px-1 rounded-[3px] font-bold scale-[0.85] origin-top whitespace-nowrap">운영종료</span>
+                              )}
+                            </div>
+                          </td>}
                           {visibleColumns.productName && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.productName} rowId={item.id} field="productName" onUpdate={handleInlineUpdate} /></td>}
                           {visibleColumns.color && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.color} rowId={item.id} field="color" onUpdate={handleInlineUpdate} /></td>}
                           {visibleColumns.size && <td className="px-1.5 py-1.5 overflow-hidden"><EditableCell value={item.size} rowId={item.id} field="size" onUpdate={handleInlineUpdate} className="text-center" /></td>}
@@ -1147,13 +1149,13 @@ export default function DefectManagerApp({ loggedInUser, onLogout }) {
 
         {/* Other Tab Content */}
         {activeTab === 'deduction_request' && (
-          <DeductionRequestSection ref={deductionRequestSectionRef} items={stats.deductionRequestedItems} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onProcess={handleProcessRequest} onCancelRequest={handleCancelRequest} hasWriteAccess={hasWriteAccess} />
+          <DeductionRequestSection ref={deductionRequestSectionRef} items={stats.deductionRequestedItems} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onProcess={handleProcessRequest} onCancelRequest={handleCancelRequest} hasWriteAccess={hasWriteAccess} vendorConfig={vendorConfig} />
         )}
         {activeTab === 'processed' && (
-          <SplitProcessedSection ref={splitProcessedSectionRef} repairItems={stats.repairProcessedItems} deductionItems={stats.deductionProcessedItems} deductionRepairItems={stats.deductionRepairItems} repaymentItems={stats.repaymentItems} defaultOpen={true} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRevert={handleRevertDeduction} onRepayment={handleSingleRepayment} hasWriteAccess={hasWriteAccess} />
+          <SplitProcessedSection ref={splitProcessedSectionRef} repairItems={stats.repairProcessedItems} deductionItems={stats.deductionProcessedItems} deductionRepairItems={stats.deductionRepairItems} repaymentItems={stats.repaymentItems} defaultOpen={true} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRevert={handleRevertDeduction} onRepayment={handleSingleRepayment} hasWriteAccess={hasWriteAccess} vendorConfig={vendorConfig} />
         )}
         {activeTab === 'overdue' && (
-          <OverdueItemsSection ref={overdueSectionRef} items={stats.overdueItems} defaultOpen={true} onEdit={handleEdit} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRequestDeduction={handleSingleDeductionRequest} hasWriteAccess={hasWriteAccess} />
+          <OverdueItemsSection ref={overdueSectionRef} items={stats.overdueItems} defaultOpen={true} onEdit={handleEdit} selectedRowIds={selectedRowIds} toggleRowSelection={toggleRowSelection} toggleAllRows={toggleAllRows} onRequestDeduction={handleSingleDeductionRequest} hasWriteAccess={hasWriteAccess} vendorConfig={vendorConfig} />
         )}
         {activeTab === 'stats' && (
           <div className="space-y-6">

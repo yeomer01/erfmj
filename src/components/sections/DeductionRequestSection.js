@@ -5,7 +5,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 import { db, appId } from '../../config/firebase';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 
-export const DeductionRequestSection = forwardRef(({ items, selectedRowIds, toggleRowSelection, toggleAllRows, onProcess, onCancelRequest, hasWriteAccess }, ref) => {
+export const DeductionRequestSection = forwardRef(({ items, selectedRowIds, toggleRowSelection, toggleAllRows, onProcess, onCancelRequest, hasWriteAccess, vendorConfig }, ref) => {
   const [localSearch, setLocalSearch] = useState('');
   const containerRef = useRef(null);
   useImperativeHandle(ref, () => ({ scrollIntoView: () => { if (containerRef.current) { containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' }); } } }));
@@ -41,7 +41,14 @@ export const DeductionRequestSection = forwardRef(({ items, selectedRowIds, togg
                   <tr key={item.id} className="hover:bg-purple-50/20 transition-colors group">
                     <td className="px-5 py-3 text-center"><input type="checkbox" checked={selectedRowIds.has(item.id)} onChange={() => toggleRowSelection(item.id)} className="rounded-sm border-stone-300 text-purple-600 focus:ring-0 w-3.5 h-3.5 cursor-pointer" /></td>
                     <td className="px-5 py-3 text-stone-600 font-mono font-medium text-center">{formatDate(item.checkDate)}</td>
-                    <td className="px-5 py-3 font-bold text-stone-800">{String(item.vendor || '')}</td>
+                    <td className="px-5 py-3 overflow-hidden">
+                      <div className="flex flex-col items-center justify-center -space-y-0.5" title={vendorConfig && vendorConfig[item.vendor] === 'inactive' ? '운영종료 공장' : ''}>
+                        <span className={`font-bold ${vendorConfig && vendorConfig[item.vendor] === 'inactive' ? 'text-stone-400 line-through decoration-stone-300' : 'text-stone-800'}`}>{String(item.vendor || '')}</span>
+                        {vendorConfig && vendorConfig[item.vendor] === 'inactive' && (
+                          <span className="text-[9px] bg-rose-50 text-rose-500 border border-rose-100 px-1 rounded-[3px] font-bold scale-[0.85] origin-top whitespace-nowrap mt-0.5">운영종료</span>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-5 py-3 text-stone-700">{String(item.productName || '')}</td>
                     <td className="px-5 py-3 text-stone-600">{String(item.color || '')}</td>
                     <td className="px-5 py-3 text-stone-600 text-center">{String(item.size || '')}</td>

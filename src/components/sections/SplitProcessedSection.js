@@ -6,7 +6,7 @@ import { db, appId } from '../../config/firebase';
 import { ResizableHeader } from '../table/ResizableHeader';
 import { formatDate, formatCurrency } from '../../utils/formatters';
 
-export const SplitProcessedSection = forwardRef(({ repairItems, deductionItems, deductionRepairItems, repaymentItems, defaultOpen, selectedRowIds, toggleRowSelection, toggleAllRows, onRevert, onRepayment, onRepairAfterDeduction, hasWriteAccess }, ref) => {
+export const SplitProcessedSection = forwardRef(({ repairItems, deductionItems, deductionRepairItems, repaymentItems, defaultOpen, selectedRowIds, toggleRowSelection, toggleAllRows, onRevert, onRepayment, onRepairAfterDeduction, hasWriteAccess, vendorConfig }, ref) => {
   const [isOpen, setIsOpen] = useState(defaultOpen || false);
   const [localSearch, setLocalSearch] = useState('');
   const [activeTab, setActiveTab] = useState('repair');
@@ -93,7 +93,14 @@ export const SplitProcessedSection = forwardRef(({ repairItems, deductionItems, 
               <tr key={item.id} className={`hover:bg-stone-50 transition-colors group ${item.isRepaid ? 'bg-green-50/30' : ''}`}>
                 <td className="px-2 py-2 text-center border-r border-stone-50 whitespace-nowrap overflow-hidden"><input type="checkbox" checked={selectedRowIds.has(item.id)} onChange={() => toggleRowSelection(item.id)} className="rounded-sm border-stone-300 text-stone-800 focus:ring-0 w-3.5 h-3.5 cursor-pointer" /></td>
                 <td className="px-1.5 py-1.5 font-mono text-stone-500 whitespace-nowrap overflow-hidden text-ellipsis text-center">{formatDate(type === 'repair' ? (item.repairDate || item.checkDate) : item.deductionDate)}</td>
-                <td className="px-1.5 py-1.5 font-bold text-stone-800 overflow-hidden text-ellipsis whitespace-nowrap text-center" title={item.vendor}>{item.vendor}</td>
+                <td className="px-1.5 py-1.5 overflow-hidden">
+                  <div className="flex flex-col items-center justify-center -space-y-0.5" title={vendorConfig && vendorConfig[item.vendor] === 'inactive' ? '운영종료 공장' : item.vendor}>
+                    <span className={`font-bold overflow-hidden text-ellipsis whitespace-nowrap text-center ${vendorConfig && vendorConfig[item.vendor] === 'inactive' ? 'text-stone-400 line-through decoration-stone-300' : 'text-stone-800'}`}>{item.vendor}</span>
+                    {vendorConfig && vendorConfig[item.vendor] === 'inactive' && (
+                      <span className="text-[9px] bg-rose-50 text-rose-500 border border-rose-100 px-1 rounded-[3px] font-bold scale-[0.85] origin-top whitespace-nowrap">운영종료</span>
+                    )}
+                  </div>
+                </td>
                 <td className="px-1.5 py-1.5 text-stone-600 overflow-hidden text-ellipsis whitespace-nowrap text-center" title={item.productName}>{item.productName}</td>
                 <td className="px-1.5 py-1.5 text-stone-500 overflow-hidden text-ellipsis whitespace-nowrap text-center" title={item.color}>{item.color}</td>
                 <td className="px-1.5 py-1.5 text-center text-stone-500 overflow-hidden text-ellipsis whitespace-nowrap text-center">{item.size}</td>

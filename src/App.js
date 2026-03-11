@@ -8,21 +8,21 @@ export default function App() {
 
   const handleLogin = (user) => {
     setLoggedInUser(user);
-    localStorage.setItem('er_logged_in_user', JSON.stringify(user));
+    sessionStorage.setItem('er_logged_in_user', JSON.stringify(user));
   };
 
   const handleLogout = () => {
     setLoggedInUser(null);
-    localStorage.removeItem('er_logged_in_user');
+    sessionStorage.removeItem('er_logged_in_user');
   };
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('er_logged_in_user');
+    const savedUser = sessionStorage.getItem('er_logged_in_user');
     if (savedUser) {
       try {
         setLoggedInUser(JSON.parse(savedUser));
       } catch (e) {
-        localStorage.removeItem('er_logged_in_user');
+        sessionStorage.removeItem('er_logged_in_user');
       }
     }
   }, []);
