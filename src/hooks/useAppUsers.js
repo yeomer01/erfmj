@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged } from "firebase/auth";
+import { onAuthStateChanged, signInAnonymously } from "firebase/auth";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import { auth, db, appId } from '../config/firebase';
 
@@ -12,7 +12,11 @@ export function useAppUsers() {
     const unsubAuth = onAuthStateChanged(auth, (user) => {
       if (unsubSnapshot) { unsubSnapshot(); unsubSnapshot = null; }
       if (!user) {
-        setLoading(false);
+        // Firebase Auth 상태가 없으면 익명 인증 자동 실행
+        signInAnonymously(auth).catch((error) => {
+          console.warn("Anonymous auth failed:", error);
+          setLoading(false);
+        });
         return;
       }
       const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'app_users'));
